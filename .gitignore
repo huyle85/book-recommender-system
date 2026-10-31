@@ -1,0 +1,49 @@
+# ==========================================
+# 1. DỮ LIỆU & MÔ HÌNH AI (Người 1, 2, 3)
+# ==========================================
+# Chặn dữ liệu thô tải từ Kaggle (tránh vượt quá giới hạn 100MB của GitHub)
+data/raw/
+*.csv
+*.tsv
+*.dat
+
+# Chặn các file mô hình tĩnh đã huấn luyện
+ai_models/saved_models/
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# Chặn cache và file tạm của Jupyter Notebook
+.ipynb_checkpoints/
+
+# ==========================================
+# 2. BACKEND API - FASTAPI (Người 5)
+# ==========================================
+# Chặn môi trường ảo Python (mỗi người tự tạo venv riêng trên máy)
+venv/
+env/
+.venv/
+
+# Chặn file cache dịch mã của Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Chặn biến môi trường (Tuyệt đối không push mật khẩu DB lên Git)
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# 3. HỆ ĐIỀU HÀNH & CÔNG CỤ CODE (Cả nhóm)
+# ==========================================
+# Windows/macOS file rác
+.DS_Store
+Thumbs.db
+
+# Cấu hình IDE cá nhân (VSCode, PyCharm)
+.vscode/
+.idea/
+*.swp
