@@ -1,0 +1,8 @@
+{
+  "name": "book-recommender-frontend",
+  "version": "1.0.0",
+  "description": "Giao diện web cho hệ thống gợi ý sách",
+  "scripts": {
+    "start": "python -m http.server 5500"
+  }
+}

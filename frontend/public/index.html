@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Hệ thống gợi ý sách</title>
+        <link rel="icon" type="image/svg+xml" href="favicon.svg">
+        <link rel="stylesheet" type="text/css" href="../src/style.css">
+    </head>
+<body>
+    <div class="thong_bao_mau" id="thong_bao_mau">
+        Đang dùng dữ liệu mẫu, chưa kết nối backend.
+    </div>
+    <header>
+        <a class="logo" href="#">
+            <span aria-hidden="true">📚</span>
+            Gợi ý sách
+        </a>
+        <div id="search_bar"></div>
+    </header>
+    <main class="container">
+        <!-- Trang chủ -->
+        <div class="trang" id="trang_home">
+            <div id="khu_trang_chu">
+                <div class="gioi_thieu">
+                    <h1>Hôm nay bạn muốn đọc gì?</h1>
+                    <p class="mo_ta">
+                        Tìm sách ở ô phía trên, hoặc xem những cuốn được nhiều người chấm điểm cao.
+                    </p>
+                </div>
+                <div class="goi_y_user">
+                    <h2>Gợi ý riêng cho bạn</h2>
+                    <p class="mo_ta">
+                        Nhập User-ID trong dữ liệu Book-Crossing để xem những cuốn sách mô hình dự đoán bạn sẽ thích.
+                    </p>
+                    <form class="form_user" onsubmit="GoiYTheoUser(event)">
+                        <label for="user_id">User-ID:</label>
+                        <input type="text" id="user_id" inputmode="numeric" placeholder="Ví dụ: 166596">
+                        <button type="submit" class="button_chinh" id="button_user">
+                            Xem gợi ý
+                        </button>
+                    </form>
+                    <div id="ket_qua_user" aria-live="polite"></div>
+                </div>
+                <div class="khu_sach">
+                    <h2>Sách được đánh giá cao</h2>
+                    <p class="mo_ta">
+                        Điểm trung bình từ 1 đến 10, chỉ tính những cuốn có từ 10 lượt đánh giá trở lên.
+                    </p>
+                    <div class="luoi_sach" id="danh_sach_pho_bien" aria-live="polite"></div>
+                    <div class="phan_trang" id="phan_trang_pho_bien"></div>
+                </div>
+                <div class="khu_sach khu_sach_viet">
+                    <h2>Sách tiếng Việt</h2>
+                    <p class="mo_ta">
+                        Một số đầu sách tiếng Việt và sách đã có bản dịch tiếng Việt từ Kho Sách Online.
+                    </p>
+                    <a class="link_kho_sach" href="https://sites.google.com/view/kho-sach-online/trang-ch%E1%BB%A7" target="_blank" rel="noopener noreferrer">
+                        Mở toàn bộ Kho Sách Online ↗
+                    </a>
+                    <div class="luoi_sach" id="danh_sach_tieng_viet" aria-live="polite"></div>
+                    <div class="phan_trang" id="phan_trang_tieng_viet"></div>
+                </div>
+            </div>
+            <div id="khu_tim_kiem">
+                <h2 id="tieu_de_tim_kiem"></h2>
+                <div class="luoi_sach" id="ket_qua_tim_kiem" aria-live="polite"></div>
+            </div>
+        </div>
+        <div class="trang" id="trang_chi_tiet">
+            <a class="quay_lai" href="#">Quay lại trang chủ</a>
+            <div id="chi_tiet_sach" aria-live="polite"></div>
+            <div class="khu_sach">
+                <h2>Sách tương tự</h2>
+                <p class="mo_ta">Những cuốn cùng tác giả hoặc cùng nhà xuất bản với cuốn này.</p>
+                <div class="luoi_sach" id="sach_tuong_tu" aria-live="polite"></div>
+            </div>
+        </div>
+    </main>
+    <script src="../src/services/mock_data.js"></script>
+    <script src="../src/services/api.js"></script>
+    <script src="../src/components/BookCard.js"></script>
+    <script src="../src/components/SearchBar.js"></script>
+    <script src="../src/pages/Home.js"></script>
+    <script src="../src/pages/BookDetail.js"></script>
+    <script src="../src/main.js"></script>
+</body>
+</html>
