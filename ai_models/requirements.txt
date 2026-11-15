@@ -1,0 +1,15 @@
+# Thư viện xử lý dữ liệu, huấn luyện và đánh giá mô hình trong ai_models/notebooks/
+pandas>=2.2.0
+numpy>=2.0.0
+scikit-learn>=1.5.0
+scikit-surprise>=1.1.4
+joblib>=1.4.0
+
+# Thư viện vẽ biểu đồ EDA và đánh giá mô hình (preprocessing.py, evaluation.ipynb)
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Môi trường chạy Jupyter Notebook (.ipynb) qua giao diện hoặc CLI nbconvert
+jupyter>=1.0.0
+ipykernel>=6.29.0
+nbconvert>=7.16.0

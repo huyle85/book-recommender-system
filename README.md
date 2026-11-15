@@ -17,7 +17,7 @@ book-recommender-system/
 │   ├── notebooks/                   # preprocessing.py, popularity_based.ipynb, content_based.ipynb,
 │   │                                # collaborative_filtering.ipynb, evaluation.ipynb
 │   ├── saved_models/                # Nơi xuất 3 file .pkl sau khi chạy notebook (không push Git)
-│   └── requirements.txt
+│   └── requirements.txt             # Thư viện xử lý dữ liệu, train model, vẽ biểu đồ & Jupyter
 │
 ├── backend/                         # [Người 5 - Backend API (FastAPI + CSV + .pkl)]
 │   ├── app/
@@ -51,55 +51,75 @@ book-recommender-system/
 
 ---
 
-## 2. Cài đặt thư viện (`requirements.txt`)
+## 2. Cài đặt thư viện trong môi trường ảo `venv`
 
-> Frontend chỉ dùng HTML/CSS/JS thuần nên **không cần** `npm install`. Bạn chỉ cần cài thư viện Python cho Backend.
+> Frontend chỉ dùng HTML/CSS/JS thuần nên **không cần** `npm install`. Toàn bộ thư viện Python cho **Backend** và **AI Notebooks** đều cài gọn trong `venv` (thư mục `venv/` đã nằm trong `.gitignore`).
 
-### Cách 1: Cài bằng môi trường ảo `venv` (khuyên dùng)
 Mở **CMD** (hoặc **PowerShell**) tại thư mục gốc của project (`book-recommender-system/`) rồi chạy:
 
 ```cmd
 python -m venv venv
 venv\Scripts\activate
-pip install -r backend\requirements.txt
+pip install -r backend\requirements.txt -r ai_models\requirements.txt
 ```
-*(Nếu dùng **PowerShell** thì thay dòng `venv\Scripts\activate` bằng `.\venv\Scripts\Activate.ps1`; nếu dùng **macOS/Linux** thì dùng `source venv/bin/activate && pip install -r backend/requirements.txt`.)*
+- Nếu dùng **PowerShell**, thay dòng `venv\Scripts\activate` bằng `.\venv\Scripts\Activate.ps1`.
+- Nếu dùng **macOS/Linux**, dùng `source venv/bin/activate && pip install -r backend/requirements.txt -r ai_models/requirements.txt`.
+- Nếu chỉ cần cài riêng một phần: dùng `pip install -r backend\requirements.txt` (chỉ chạy Backend) hoặc `pip install -r ai_models\requirements.txt` (chỉ chạy `ai_models/notebooks/`).
 
-### Cách 2: Cài trực tiếp vào Python hiện tại của máy
-Mở terminal tại thư mục gốc của project rồi chạy:
-```cmd
-cd backend
-pip install -r requirements.txt
-```
-
-**Lưu ý khi cài thư viện trên Windows:**
-- **Nếu dùng Python từ Microsoft Store:** Khi chạy `pip install`, nếu thấy dòng `Defaulting to user installation because normal site-packages is not writeable`, các file `.exe` (như `uvicorn`, `pytest`) sẽ được cài vào thư mục `...\LocalCache\local-packages\Python313\Scripts` chưa có sẵn trong `PATH`. Do đó khi chạy lệnh ở các bước sau, hãy **luôn thêm `python -m` ở đầu** (`python -m uvicorn ...`, `python -m pytest ...`) để tránh lỗi `'uvicorn' is not recognized`.
-- **Về `scikit-surprise`:** File `collaborative_model.pkl` dùng `surprise.SVD`, nên `backend/requirements.txt` đã khai báo sẵn `scikit-surprise>=1.1.4` (đã test chạy ổn với `scikit-surprise==1.1.5` trên Python 3.13.14 Windows). Nếu máy khác gặp lỗi biên dịch từ mã nguồn khi `pip install`, hãy dùng Python 3.10/3.11 hoặc cài Microsoft C++ Build Tools.
+> **Lưu ý về `scikit-surprise`:** File `collaborative_model.pkl` dùng `surprise.SVD`, nên cả `backend/requirements.txt` và `ai_models/requirements.txt` đều đã khai báo sẵn `scikit-surprise>=1.1.4` (đã test chạy ổn với `scikit-surprise==1.1.5` trên Python 3.13.14 Windows). Nếu máy khác gặp lỗi biên dịch từ mã nguồn khi `pip install`, hãy dùng Python 3.10/3.11 hoặc cài Microsoft C++ Build Tools.
 
 ---
 
-## 3. Chuẩn bị dữ liệu `.csv`, model `.pkl` và file `.env`
+## 3. Chuẩn bị dữ liệu `.csv`, chạy `ai_models/notebooks/` và tạo file `.env`
 
 Vì `.gitignore` chặn `*.csv`, `*.pkl` và `.env`, khi chạy trên máy mới bạn cần chuẩn bị sẵn các file sau ở máy (chỉ lưu cục bộ để chạy, **không commit lên Git**):
 
-1. **Dữ liệu đã làm sạch** — đặt vào `data/processed/`:
-   - `books_cleaned.csv`
-   - `ratings_cleaned.csv`
-2. **3 file model đã train** — đặt vào `ai_models/saved_models/`:
-   - `popularity_model.pkl`
-   - `content_based_model.pkl`
-   - `collaborative_model.pkl`
-   *(Nếu thư mục `ai_models/saved_models/` chưa có 3 file trên, hãy mở và chạy lần lượt 3 notebook trong `ai_models/notebooks/`: `popularity_based.ipynb`, `content_based.ipynb`, `collaborative_filtering.ipynb`.)*
-3. **File cấu hình môi trường Backend** — chạy tại thư mục gốc của project để tạo `backend/.env` từ file mẫu (nếu chưa có):
-   ```cmd
-   copy backend\.env.example backend\.env
-   ```
+### Bước 3.1: Chuẩn bị dữ liệu CSV trong `data/processed/`
+- **Nếu đã có sẵn file sạch** từ nhóm (`books_cleaned.csv`, `ratings_cleaned.csv`): copy thẳng vào thư mục `data/processed/`.
+- **Nếu mới tải dataset gốc từ Kaggle** (`Books.csv`, `Users.csv`, `Ratings.csv`): đặt vào `data/raw/` rồi chạy script tiền xử lý từ thư mục gốc của project để tự sinh `data/processed/*.csv` và biểu đồ EDA trong `docs/images/`:
+  ```cmd
+  python ai_models\notebooks\preprocessing.py
+  ```
+
+### Bước 3.2: Chạy các notebook trong `ai_models/notebooks/` để sinh 3 file model `.pkl`
+> **Quan trọng:** Các notebook dùng đường dẫn tương đối (`../../data/processed/...` và `../saved_models/...`), nên **phải `cd ai_models\notebooks`** trước khi chạy.
+
+- **Cách A — Chạy trực tiếp bằng dòng lệnh (không cần mở giao diện):**
+  ```cmd
+  cd ai_models\notebooks
+  python -m jupyter nbconvert --to notebook --execute --inplace popularity_based.ipynb
+  python -m jupyter nbconvert --to notebook --execute --inplace content_based.ipynb
+  python -m jupyter nbconvert --to notebook --execute --inplace collaborative_filtering.ipynb
+  ```
+  *(Tùy chọn — chạy thêm `evaluation.ipynb` **sau khi** đã có đủ 3 file `.pkl` để đánh giá và lưu biểu đồ vào `docs/images/`:)*
+  ```cmd
+  python -m jupyter nbconvert --to notebook --execute --inplace evaluation.ipynb
+  ```
+  *(Xong bước này, quay lại thư mục gốc project bằng `cd ..\..`.)*
+
+- **Cách B — Mở giao diện Jupyter Notebook / VS Code:**
+  ```cmd
+  cd ai_models\notebooks
+  python -m jupyter notebook
+  ```
+  Sau đó mở lần lượt `popularity_based.ipynb`, `content_based.ipynb`, `collaborative_filtering.ipynb` (và `evaluation.ipynb` nếu cần), chọn kernel **`venv`** rồi bấm **Run All**.
+
+Sau khi chạy xong, thư mục `ai_models/saved_models/` sẽ có đủ 3 file:
+- `popularity_model.pkl`
+- `content_based_model.pkl`
+- `collaborative_model.pkl`
+
+### Bước 3.3: Tạo file cấu hình môi trường Backend
+Chạy tại thư mục gốc của project để tạo `backend/.env` từ file mẫu (nếu chưa có):
+```cmd
+copy backend\.env.example backend\.env
+```
 
 ---
 
 ## 4. Lệnh chạy thử Frontend + Backend trên máy
 
-> **Lưu ý tránh lỗi `'uvicorn' is not recognized...` trên Windows:** Luôn chạy bằng `python -m uvicorn ...` (hoặc kích hoạt `venv` trước). Cả 2 terminal bên dưới đều bắt đầu từ **thư mục gốc của project (`book-recommender-system/`)**.
+> **Lưu ý:** Đảm bảo đã kích hoạt `venv` (`venv\Scripts\activate`) và bắt đầu từ **thư mục gốc của project (`book-recommender-system/`)** trước khi chạy lệnh trong cả 2 terminal dưới đây.
 
 ### Mở Terminal 1 chạy Backend (Swagger docs ở `http://localhost:8000/docs`)
 ```cmd
