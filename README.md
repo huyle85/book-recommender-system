@@ -56,19 +56,19 @@ book-recommender-system/
 > Frontend chỉ dùng HTML/CSS/JS thuần nên **không cần** `npm install`. Bạn chỉ cần cài thư viện Python cho Backend.
 
 ### Cách 1: Cài bằng môi trường ảo `venv` (khuyên dùng)
-Mở **CMD** (hoặc **PowerShell**) tại thư mục gốc của repo rồi chạy:
+Mở **CMD** (hoặc **PowerShell**) tại thư mục gốc của project (`book-recommender-system/`) rồi chạy:
 
 ```cmd
-cd C:\Users\hung\Desktop\AI\book-recommender-system-repo
 python -m venv venv
 venv\Scripts\activate
 pip install -r backend\requirements.txt
 ```
-*(Nếu dùng **PowerShell** thì thay dòng `venv\Scripts\activate` bằng `.\venv\Scripts\Activate.ps1`.)*
+*(Nếu dùng **PowerShell** thì thay dòng `venv\Scripts\activate` bằng `.\venv\Scripts\Activate.ps1`; nếu dùng **macOS/Linux** thì dùng `source venv/bin/activate && pip install -r backend/requirements.txt`.)*
 
 ### Cách 2: Cài trực tiếp vào Python hiện tại của máy
+Mở terminal tại thư mục gốc của project rồi chạy:
 ```cmd
-cd C:\Users\hung\Desktop\AI\book-recommender-system-repo\backend
+cd backend
 pip install -r requirements.txt
 ```
 
@@ -90,9 +90,8 @@ Vì `.gitignore` chặn `*.csv`, `*.pkl` và `.env`, khi chạy trên máy mới
    - `content_based_model.pkl`
    - `collaborative_model.pkl`
    *(Nếu thư mục `ai_models/saved_models/` chưa có 3 file trên, hãy mở và chạy lần lượt 3 notebook trong `ai_models/notebooks/`: `popularity_based.ipynb`, `content_based.ipynb`, `collaborative_filtering.ipynb`.)*
-3. **File cấu hình môi trường Backend** — tạo `backend/.env` từ file mẫu (nếu chưa có):
-   ```powershell
-   cd C:\Users\hung\Desktop\AI\book-recommender-system-repo
+3. **File cấu hình môi trường Backend** — chạy tại thư mục gốc của project để tạo `backend/.env` từ file mẫu (nếu chưa có):
+   ```cmd
    copy backend\.env.example backend\.env
    ```
 
@@ -100,17 +99,17 @@ Vì `.gitignore` chặn `*.csv`, `*.pkl` và `.env`, khi chạy trên máy mới
 
 ## 4. Lệnh chạy thử Frontend + Backend trên máy
 
-> **Lưu ý tránh lỗi `'uvicorn' is not recognized...` trên Windows:** Luôn chạy bằng `python -m uvicorn ...` (hoặc kích hoạt `venv` trước). *(Nếu bạn clone repo ở thư mục khác, chỉ cần `cd` vào đúng thư mục `backend` và `frontend` tương ứng.)*
+> **Lưu ý tránh lỗi `'uvicorn' is not recognized...` trên Windows:** Luôn chạy bằng `python -m uvicorn ...` (hoặc kích hoạt `venv` trước). Cả 2 terminal bên dưới đều bắt đầu từ **thư mục gốc của project (`book-recommender-system/`)**.
 
 ### Mở Terminal 1 chạy Backend (Swagger docs ở `http://localhost:8000/docs`)
-```powershell
-cd C:\Users\hung\Desktop\AI\book-recommender-system-repo\backend
+```cmd
+cd backend
 python -m uvicorn app.main:app --reload
 ```
 
 ### Mở Terminal 2 chạy Frontend
-```powershell
-cd C:\Users\hung\Desktop\AI\book-recommender-system-repo\frontend
+```cmd
+cd frontend
 python -m http.server 5500
 ```
 
@@ -134,8 +133,8 @@ python -m http.server 5500
 | `GET` | `/api/books/{book_id}/similar?top_k=5` | Gợi ý sách tương tự (Content-Based TF-IDF) |
 | `GET` | `/api/recommend/{user_id}?top_k=10` | Gợi ý cá nhân hóa theo người dùng (SVD) |
 
-### Chạy bộ test tự động
-```powershell
-cd C:\Users\hung\Desktop\AI\book-recommender-system-repo\backend
+### Chạy bộ test tự động (từ thư mục gốc của project)
+```cmd
+cd backend
 python -m pytest -v
 ```
