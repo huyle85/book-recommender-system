@@ -2,7 +2,7 @@
 const API_URL = "http://localhost:8000/api";
 
 // Để true thì dùng dữ liệu mẫu. Khi backend đã chạy thì đổi thành false.
-const DUNG_DU_LIEU_MAU = true;
+const DUNG_DU_LIEU_MAU = false;
 
 /* Các đường dẫn API frontend sẽ sử dụng:
    GET /popular?top_k=10                -> {popular_books: [Sach]}
@@ -69,7 +69,7 @@ function ChuanHoaSach(Sach){
 async function LayPhoBien(SoLuong){
     const Data = await GoiAPI("/popular?top_k=" + SoLuong);
     return Data.popular_books.map(ChuanHoaSach);
-}ả
+}
 async function TimSach(TuKhoa){
     const Data = await GoiAPI("/books/search?q=" + encodeURIComponent(TuKhoa));
     return Data.books.map(ChuanHoaSach);
