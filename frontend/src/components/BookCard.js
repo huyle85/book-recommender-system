@@ -14,14 +14,29 @@ const MauBia = [
         Tong += BookID.charCodeAt(i);
     }
     return MauBia[Tong % MauBia.length];
+}function LaIsbnHopLe(BookID){
+    return /^[0-9Xx]{9,13}$/.test(String(BookID || "").trim());
+}function ThuAnhDuPhong(Anh){
+    const BookID = Anh.dataset.bookId || "";
+    if(Anh.dataset.daThuOpenLibrary != "1" && LaIsbnHopLe(BookID)){
+        Anh.dataset.daThuOpenLibrary = "1";
+        Anh.src = "https://covers.openlibrary.org/b/isbn/" + encodeURIComponent(BookID) + "-M.jpg?default=false";
+        return;
+    }
+    Anh.style.display = "none";
 }function KiemTraAnh(Anh){
     if(Anh.naturalWidth <= 1){
-        Anh.style.display = "none";
+        ThuAnhDuPhong(Anh);
     }
 }function TaoBiaSach(Sach){
+    let Src = Sach.image_url || "";
+    if((!Src || /images\.amazon\.com/i.test(Src)) && LaIsbnHopLe(Sach.book_id)){
+        Src = "https://covers.openlibrary.org/b/isbn/" + encodeURIComponent(Sach.book_id) + "-M.jpg?default=false";
+    }
     let Anh = "";
-    if(Sach.image_url){
-        Anh = `<img src="${LamSach(Sach.image_url)}" alt="Bìa sách ${LamSach(Sach.title)}" loading="lazy" onload="KiemTraAnh(this)" onerror="this.style.display='none'">`;
+    if(Src){
+        const DaThu = /covers\.openlibrary\.org/i.test(Src) ? "1" : "0";
+        Anh = `<img src="${LamSach(Src)}" data-book-id="${LamSach(Sach.book_id || "")}" data-da-thu-open-library="${DaThu}" alt="Bìa sách ${LamSach(Sach.title)}" onload="KiemTraAnh(this)" onerror="ThuAnhDuPhong(this)">`;
     }
     return `
         <div class="bia_sach">

@@ -178,13 +178,25 @@ def get_similar_books(book_id: str, top_k: int = 5) -> list[dict]:
     return similar_books
 
 
+def _is_user_in_svd_trainset(svd_model: object, user_id: int) -> bool:
+    """Kiểm tra O(1) xem user_id có thực sự nằm trong trainset của mô hình SVD hay không."""
+    trainset = getattr(svd_model, "trainset", None)
+    if trainset is None or not hasattr(trainset, "to_inner_uid"):
+        return False
+    try:
+        trainset.to_inner_uid(user_id)
+        return True
+    except ValueError:
+        return False
+
+
 def get_user_recommendations(user_id: int, top_k: int = 10) -> dict:
     """
-    Gợi ý Top-K sách cho user_id theo chiến lược Hybrid nhẹ:
-    - Nếu user chưa có lịch sử đánh giá (Cold Start): kiểm tra O(1) qua Hash Set/Map
-      và tự động chuyển sang Popularity-Based để gợi ý Top-K sách phổ biến nhất.
-    - Nếu user đã có lịch sử: dùng collaborative_model.pkl (FunkSVD) chấm điểm
-      các sách chưa đọc và chọn Top-K bằng Min-Heap (heapq.nlargest, O(N log K)).
+    Gợi ý Top-K sách cho user_id theo chiến lược Hybrid nhất quán với mô hình đã huấn luyện:
+    - Nếu user chưa có lịch sử hoặc chưa nằm trong trainset của FunkSVD (Cold Start):
+      tự động fallback sang Popularity-Based để gợi ý Top-K sách phổ biến nhất.
+    - Nếu user đã có nhân tố ẩn p_u trong trainset của FunkSVD: lọc sách đã đọc qua
+      Hash Set O(1), chấm điểm các sách ứng viên và chọn Top-K bằng Min-Heap (O(N log K)).
     """
     seen_books = get_user_seen_books(user_id)
     if seen_books is None:
@@ -199,6 +211,17 @@ def get_user_recommendations(user_id: int, top_k: int = 10) -> dict:
         }
 
     svd_model = _load_model("collaborative_model.pkl")
+    if not _is_user_in_svd_trainset(svd_model, user_id):
+        return {
+            "recommend_type": "Popularity-Based (Cold Start Fallback)",
+            "is_cold_start": True,
+            "message": (
+                f"User-ID {user_id} chưa nằm trong tập huấn luyện (Train) của mô hình FunkSVD "
+                f"(Cold Start ở mức mô hình). Hệ thống tự động fallback sang Popularity-Based Top-{top_k}."
+            ),
+            "recommendations": get_popular_books(top_k=top_k),
+        }
+
     load_books()
 
     # Chọn các sách có nhiều đánh giá nhất làm ứng viên và loại sách đã đọc theo O(1)

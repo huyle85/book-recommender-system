@@ -137,7 +137,7 @@ python -m http.server 5500
 ### Mở trình duyệt để kiểm thử thuật toán gợi ý
 - Truy cập giao diện web tại: **`http://localhost:5500/`** (hoặc **`http://localhost:5500/public/index.html`**)
   - **Test Collaborative Filtering (SVD — người dùng đã có lịch sử):** Nhập `User ID` **`166596`** → hệ thống loại bỏ sách đã đọc ($O(1)$ trên Hash Set), dùng mô hình SVD dự đoán điểm cho sách ứng viên và lấy Top 10 bằng Min-Heap (`heapq.nlargest`).
-  - **Test Cold Start Fallback (người dùng mới chưa có lịch sử):** Nhập bất kỳ `User ID` mới nào (ví dụ **`9999999`**) → hệ thống phát hiện $O(1)$ và **tự động chuyển sang Popularity-Based gợi ý 10 sách phổ biến nhất** (HTTP `200`, không báo lỗi `404`).
+  - **Test Cold Start Fallback (người dùng mới hoặc chưa có trong tập Train SVD):** Nhập bất kỳ `User ID` mới nào (ví dụ **`9999999`**) hoặc ID chưa nằm trong `trainset` của `collaborative_model.pkl` → hệ thống phát hiện $O(1)$ và **tự động chuyển sang Popularity-Based gợi ý 10 sách phổ biến nhất** (HTTP `200`, không báo lỗi `404`).
   - **Test Content-Based (TF-IDF):** Mở trang chi tiết một cuốn sách bất kỳ để xem Top 5 sách tương đồng Cosine theo tác giả & nhà xuất bản.
   - *Lưu ý:* Request đầu tiên sau khi bật Backend sẽ mất khoảng ~10 giây để nạp 2 file CSV vào bộ nhớ đệm RAM; các request sau phản hồi rất nhanh.
 - Xem và test trực tiếp API qua Swagger UI tại: **`http://localhost:8000/docs`**
@@ -154,7 +154,7 @@ python -m http.server 5500
 | `GET` | `/api/books/search?q=...&limit=40` | Tìm kiếm sách theo tên hoặc tác giả từ CSV |
 | `GET` | `/api/books/{book_id}` | Xem chi tiết thông tin một cuốn sách theo ISBN |
 | `GET` | `/api/books/{book_id}/similar?top_k=5` | Gợi ý sách tương tự (Content-Based TF-IDF) |
-| `GET` | `/api/recommend/{user_id}?top_k=10` | Gợi ý Top-K cho user: dùng **SVD** nếu có lịch sử, tự động **fallback sang Popularity-Based** nếu là user mới (Cold Start) |
+| `GET` | `/api/recommend/{user_id}?top_k=10` | Gợi ý Top-K cho user: dùng **SVD** nếu user có trong `trainset` của mô hình, tự động **fallback sang Popularity-Based** nếu user mới hoặc chưa có trong tập Train (Cold Start) |
 
 ### Chạy bộ test tự động (từ thư mục gốc của project)
 ```cmd

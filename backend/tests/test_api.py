@@ -20,8 +20,23 @@ from app.main import app
 from app.services import recommend_service
 
 
+class DummyTrainset:
+    """Giả lập trainset của surprise chứa tập User-ID đã học trong Train."""
+
+    def __init__(self, known_users: set[int]) -> None:
+        self._known_users = known_users
+
+    def to_inner_uid(self, user_id: int) -> int:
+        if user_id not in self._known_users:
+            raise ValueError(f"User {user_id} is not part of the trainset.")
+        return user_id
+
+
 class DummySVDModel:
-    """Giả lập đối tượng SVD của thư viện surprise có hàm .predict(uid, iid)."""
+    """Giả lập đối tượng SVD của thư viện surprise có .trainset và .predict(uid, iid)."""
+
+    def __init__(self, train_users: set[int]) -> None:
+        self.trainset = DummyTrainset(train_users)
 
     def predict(self, user_id: int, isbn: str) -> SimpleNamespace:
         scores = {
@@ -137,7 +152,8 @@ def setup_temp_data_and_models(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(recommend_service, "MODEL_DIR", model_dir)
     csv_loader.clear_csv_cache()
     recommend_service.clear_model_cache()
-    recommend_service._model_cache["collaborative_model.pkl"] = DummySVDModel()
+    # Chỉ 166596 và 100001 nằm trong tập Train SVD; 100002 giả lập user chỉ thuộc Validation/Test
+    recommend_service._model_cache["collaborative_model.pkl"] = DummySVDModel({166596, 100001})
 
 
 client = TestClient(app)
@@ -204,7 +220,15 @@ def test_recommend_known_user_and_cold_start_fallback() -> None:
     assert recs[0]["book_id"] == "0439425220"
     assert recs[0]["score"] == 9.5
 
-    # 2. User mới chưa có lịch sử (Cold Start) -> tự động chuyển sang Popularity-Based (200 OK)
+    # 2. User có trong CSV (Validation/Test) nhưng KHÔNG nằm trong trainset SVD -> Popularity Fallback
+    res_val_only = client.get("/api/recommend/100002", params={"top_k": 10})
+    assert res_val_only.status_code == 200
+    val_body = res_val_only.json()
+    assert val_body["user_id"] == 100002
+    assert val_body["is_cold_start"] is True
+    assert val_body["recommend_type"] == "Popularity-Based (Cold Start Fallback)"
+
+    # 3. User mới chưa có lịch sử (Cold Start) -> tự động chuyển sang Popularity-Based (200 OK)
     res_cold_start = client.get("/api/recommend/999999999", params={"top_k": 10})
     assert res_cold_start.status_code == 200
     cold_body = res_cold_start.json()
