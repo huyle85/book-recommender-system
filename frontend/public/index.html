@@ -23,19 +23,21 @@
         <div class="trang" id="trang_home">
             <div id="khu_trang_chu">
                 <div class="gioi_thieu">
-                    <h1>Hôm nay bạn muốn đọc gì?</h1>
+                    <h1>Hệ thống Gợi ý Sách thông minh</h1>
                     <p class="mo_ta">
-                        Tìm sách ở ô phía trên, hoặc xem những cuốn được nhiều người chấm điểm cao.
+                        Kết hợp Collaborative Filtering (SVD), Content-Based (TF-IDF) và Popularity-Based (Cold Start Fallback).
                     </p>
                 </div>
                 <div class="goi_y_user">
-                    <h2>Gợi ý riêng cho bạn</h2>
+                    <h2>Gợi ý cá nhân hóa &amp; Xử lý Cold Start</h2>
                     <p class="mo_ta">
-                        Nhập User-ID trong dữ liệu Book-Crossing để xem những cuốn sách mô hình dự đoán bạn sẽ thích.
+                        Nhập User-ID đã có lịch sử (ví dụ: <b>166596</b>) để dùng Collaborative Filtering (SVD),
+                        hoặc nhập User-ID mới bất kỳ (ví dụ: <b>9999999</b>) để hệ thống tự động fallback sang
+                        Popularity-Based gợi ý 10 sách phổ biến nhất.
                     </p>
                     <form class="form_user" onsubmit="GoiYTheoUser(event)">
                         <label for="user_id">User-ID:</label>
-                        <input type="text" id="user_id" inputmode="numeric" placeholder="Ví dụ: 166596">
+                        <input type="text" id="user_id" inputmode="numeric" placeholder="Ví dụ: 166596 hoặc 9999999">
                         <button type="submit" class="button_chinh" id="button_user">
                             Xem gợi ý
                         </button>
@@ -43,9 +45,9 @@
                     <div id="ket_qua_user" aria-live="polite"></div>
                 </div>
                 <div class="khu_sach">
-                    <h2>Sách được đánh giá cao</h2>
+                    <h2>Sách phổ biến nhất (Popularity-Based)</h2>
                     <p class="mo_ta">
-                        Điểm trung bình từ 1 đến 10, chỉ tính những cuốn có từ 10 lượt đánh giá trở lên.
+                        Điểm trung bình từ 1 đến 10 (lọc sách có từ 10 lượt đánh giá trở lên), dùng làm cơ chế gợi ý mặc định cho người dùng mới.
                     </p>
                     <div class="luoi_sach" id="danh_sach_pho_bien" aria-live="polite"></div>
                     <div class="phan_trang" id="phan_trang_pho_bien"></div>
@@ -71,8 +73,8 @@
             <a class="quay_lai" href="#">Quay lại trang chủ</a>
             <div id="chi_tiet_sach" aria-live="polite"></div>
             <div class="khu_sach">
-                <h2>Sách tương tự</h2>
-                <p class="mo_ta">Những cuốn cùng tác giả hoặc cùng nhà xuất bản với cuốn này.</p>
+                <h2>Sách tương tự (Content-Based TF-IDF)</h2>
+                <p class="mo_ta">Những cuốn có độ tương đồng Cosine cao nhất theo tác giả và nhà xuất bản với cuốn đang xem.</p>
                 <div class="luoi_sach" id="sach_tuong_tu" aria-live="polite"></div>
             </div>
         </div>

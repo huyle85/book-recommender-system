@@ -47,4 +47,16 @@ class UserRecommendationsResponse(BaseModel):
     """Đầu ra cho GET /api/recommend/{user_id}"""
 
     user_id: int
+    recommend_type: str = Field(
+        default="Collaborative Filtering (SVD)",
+        description="Thuật toán đã dùng: Collaborative Filtering (SVD) hoặc Popularity-Based (Cold Start Fallback)",
+    )
+    is_cold_start: bool = Field(
+        default=False,
+        description="True nếu user chưa từng có lịch sử đánh giá (Cold Start)",
+    )
+    message: str = Field(
+        default="",
+        description="Giải thích ngắn gọn chiến lược gợi ý đã áp dụng",
+    )
     recommendations: list[BookOut]

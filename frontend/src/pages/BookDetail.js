@@ -18,7 +18,7 @@ function HienThiChiTiet(BookID){
             ThongTin += "<p>Nhà xuất bản: <b>" + LamSach(Sach.publisher) + "</b></p>";
         }
         ThongTin += "<p>ISBN: <b>" + LamSach(Sach.book_id) + "</b></p>";
-        if(Sach.rating_mean != undefined){
+        if(Sach.rating_mean != undefined && Number.isFinite(Number(Sach.rating_mean))){
             ThongTin += "<p>Điểm trung bình: <b>" + Number(Sach.rating_mean).toFixed(1) + " / 10</b>";
             if(Sach.rating_count != undefined){
                 ThongTin += " (" + Sach.rating_count + " lượt đánh giá)";

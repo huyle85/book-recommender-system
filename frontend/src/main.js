@@ -10,6 +10,15 @@ function ChuyenTrang(TenTrang){
     window.scrollTo(0, 0);
 }
 
+function GiaiMaUrl(GiaTri){
+    try{
+        return decodeURIComponent(GiaTri);
+    }
+    catch(_ignored){
+        return GiaTri;
+    }
+}
+
 // Đọc địa chỉ trên thanh URL để biết cần hiển thị trang nào
 // #book/ISBN: trang chi tiết sách
 // #search/tu-khoa: trang kết quả tìm kiếm
@@ -18,10 +27,10 @@ function DinhTuyen(){
     const DuongDan = location.hash.replace("#", "");
 
     if(DuongDan.startsWith("book/")){
-        HienThiChiTiet(decodeURIComponent(DuongDan.slice(5)));
+        HienThiChiTiet(GiaiMaUrl(DuongDan.slice(5)));
     }
     else if(DuongDan.startsWith("search/")){
-        HienThiTimKiem(decodeURIComponent(DuongDan.slice(7)));
+        HienThiTimKiem(GiaiMaUrl(DuongDan.slice(7)));
     }
     else{
         HienThiTrangChu();

@@ -8,6 +8,8 @@ và kết hợp với thông tin sách từ CSV để trả kết quả cho Fron
 - collaborative_model.pkl : Mô hình SVD (scikit-surprise) gợi ý theo User-ID
 """
 
+import heapq
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -176,35 +178,61 @@ def get_similar_books(book_id: str, top_k: int = 5) -> list[dict]:
     return similar_books
 
 
-def get_user_recommendations(user_id: int, top_k: int = 10) -> list[dict] | None:
+def get_user_recommendations(user_id: int, top_k: int = 10) -> dict:
     """
-    Đọc collaborative_model.pkl (Surprise SVD) để gợi ý Top-K sách cho user_id.
-    Trả về None nếu user_id chưa từng có dữ liệu đánh giá (router sẽ báo lỗi 404).
+    Gợi ý Top-K sách cho user_id theo chiến lược Hybrid nhẹ:
+    - Nếu user chưa có lịch sử đánh giá (Cold Start): kiểm tra O(1) qua Hash Set/Map
+      và tự động chuyển sang Popularity-Based để gợi ý Top-K sách phổ biến nhất.
+    - Nếu user đã có lịch sử: dùng collaborative_model.pkl (FunkSVD) chấm điểm
+      các sách chưa đọc và chọn Top-K bằng Min-Heap (heapq.nlargest, O(N log K)).
     """
     seen_books = get_user_seen_books(user_id)
     if seen_books is None:
-        return None
+        return {
+            "recommend_type": "Popularity-Based (Cold Start Fallback)",
+            "is_cold_start": True,
+            "message": (
+                f"User-ID {user_id} chưa có lịch sử đánh giá (Cold Start). "
+                f"Hệ thống tự động chuyển sang Popularity-Based gợi ý {top_k} sách phổ biến nhất."
+            ),
+            "recommendations": get_popular_books(top_k=top_k),
+        }
 
     svd_model = _load_model("collaborative_model.pkl")
     load_books()
 
-    # Chọn các sách có nhiều đánh giá nhất làm ứng viên để dự đoán nhanh (< 0.2 giây)
+    # Chọn các sách có nhiều đánh giá nhất làm ứng viên và loại sách đã đọc theo O(1)
     candidate_isbns = get_top_candidate_isbns(limit=3000)
     unseen_isbns = [isbn for isbn in candidate_isbns if isbn not in seen_books]
+    if not unseen_isbns:
+        return {
+            "recommend_type": "Popularity-Based (Cold Start Fallback)",
+            "is_cold_start": True,
+            "message": (
+                f"Không còn sách ứng viên mới cho User-ID {user_id}. "
+                f"Hệ thống chuyển sang Popularity-Based gợi ý {top_k} sách phổ biến nhất."
+            ),
+            "recommendations": get_popular_books(top_k=top_k),
+        }
 
     predictions: list[tuple[str, float]] = []
     for isbn in unseen_isbns:
         est_score = float(svd_model.predict(user_id, isbn).est)
         predictions.append((isbn, est_score))
 
-    predictions.sort(key=lambda item: item[1], reverse=True)
+    # Tối ưu Min-Heap O(N log K) thay vì sắp xếp toàn bộ mảng O(N log N)
+    top_predictions = heapq.nlargest(top_k, predictions, key=lambda item: item[1])
 
-    recommendations: list[dict] = []
-    for isbn, est_score in predictions[:top_k]:
-        recommendations.append(
-            _build_book_response(
-                book_id=isbn,
-                score=round(est_score, 2),
-            )
-        )
-    return recommendations
+    recommendations = [
+        _build_book_response(book_id=isbn, score=round(est_score, 2))
+        for isbn, est_score in top_predictions
+    ]
+    return {
+        "recommend_type": "Collaborative Filtering (SVD)",
+        "is_cold_start": False,
+        "message": (
+            f"Gợi ý cá nhân hóa cho User-ID {user_id} bằng Collaborative Filtering (FunkSVD) "
+            "sau khi loại bỏ các sách đã đánh giá."
+        ),
+        "recommendations": recommendations,
+    }

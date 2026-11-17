@@ -8,9 +8,16 @@ function HienThiTrangChu(){
     document.getElementById("khu_tim_kiem").style.display = "none";
     document.getElementById("o_tim_kiem").value = "";
     document.title = "Gợi ý sách";
-    TaiSachPhoBien();
-    HienThiSachTiengViet(1);
-}async function TaiSachPhoBien(){
+    if(DanhSachPhoBien.length === 0){
+        TaiSachPhoBien();
+    }
+    else{
+        HienThiTrangSachPhoBien(TrangPhoBienHienTai);
+    }
+    HienThiSachTiengViet(TrangSachVietHienTai);
+}
+
+async function TaiSachPhoBien(){
     const Khung = document.getElementById("danh_sach_pho_bien");
     const KhungPhanTrang = document.getElementById("phan_trang_pho_bien");
     Khung.innerHTML = '<p class="thong_bao">Đang tải sách...</p>';
@@ -115,25 +122,45 @@ async function GoiYTheoUser(event){
         KetQua.innerHTML = TaoLoi("Vui lòng nhập User-ID.");
         return;
     }
-    if(isNaN(UserID) || Number(UserID) < 1 || Number(UserID) % 1 != 0){
-        KetQua.innerHTML = TaoLoi("User-ID phải là số nguyên dương, ví dụ 166596.");
+    if(!/^\d+$/.test(UserID) || !Number.isSafeInteger(Number(UserID)) || Number(UserID) < 1){
+        KetQua.innerHTML = TaoLoi("User-ID phải là số nguyên dương hợp lệ, ví dụ 166596 hoặc 9999999.");
         return;
     }
-    KetQua.innerHTML = '<p class="thong_bao">Đang tính gợi ý cho User ' + UserID + ', việc này có thể mất vài giây...</p>';
+    const CleanUserID = String(Number(UserID));
+    KetQua.innerHTML = '<p class="thong_bao">Đang tính gợi ý cho User ' + LamSach(CleanUserID) + ', việc này có thể mất vài giây...</p>';
     Nut.disabled = true;
     try{
-        const DanhSach = await LayGoiYTheoUser(UserID, 10);
-        KetQua.innerHTML = "<h3>Sách dành cho User " + UserID + "</h3>" +
-            '<div class="luoi_sach">' + TaoDanhSachCard(DanhSach, "du_doan") + "</div>";
+        const KetQuaGoiY = await LayGoiYTheoUser(CleanUserID, 10);
+        const DanhSach = KetQuaGoiY.books || [];
+        if(DanhSach.length === 0){
+            KetQua.innerHTML = '<p class="thong_bao">Hiện chưa có sách gợi ý cho User-ID ' + LamSach(CleanUserID) + ".</p>";
+            return;
+        }
+        if(KetQuaGoiY.is_cold_start){
+            const MoTa = KetQuaGoiY.message || (
+                "User-ID " + CleanUserID + " chưa có lịch sử đánh giá (Cold Start). Hệ thống tự động dùng Popularity-Based để gợi ý " +
+                DanhSach.length + " sách phổ biến nhất."
+            );
+            KetQua.innerHTML =
+                "<h3>Gợi ý Cold Start cho User " + LamSach(CleanUserID) + " — Popularity-Based (Top " + DanhSach.length + ")</h3>" +
+                '<p class="thong_bao_cold_start">' + LamSach(MoTa) + "</p>" +
+                '<div class="luoi_sach">' + TaoDanhSachCard(DanhSach, "pho_bien") + "</div>";
+        }
+        else{
+            const MoTa = KetQuaGoiY.message || (
+                "Gợi ý cá nhân hóa cho User-ID " + CleanUserID + " bằng Collaborative Filtering (SVD)."
+            );
+            KetQua.innerHTML =
+                "<h3>Gợi ý cá nhân hóa cho User " + LamSach(CleanUserID) + " — Collaborative Filtering (SVD)</h3>" +
+                '<p class="thong_bao_svd">' + LamSach(MoTa) + "</p>" +
+                '<div class="luoi_sach">' + TaoDanhSachCard(DanhSach, "du_doan") + "</div>";
+        }
     }
     catch(error){
         console.log(error);
-        if(error.status == 404){
-            KetQua.innerHTML = TaoLoi("Không tìm thấy User-ID " + UserID + ". Hãy thử User-ID khác.");
-        }
-        else{
-            KetQua.innerHTML = TaoLoi(error.message);
-        }
+        KetQua.innerHTML = TaoLoi(error.message);
     }
-    Nut.disabled = false;
+    finally{
+        Nut.disabled = false;
+    }
 }

@@ -154,6 +154,23 @@ header{
     color: rgb(160, 40, 40);
     font-weight: bold;
 }
+.thong_bao_cold_start, .thong_bao_svd{
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+}
+.thong_bao_cold_start{
+    background-color: var(--highlight-color);
+    border-left: 4px solid rgb(180, 120, 20);
+    color: rgb(95, 60, 10);
+}
+.thong_bao_svd{
+    background-color: white;
+    border-left: 4px solid var(--button-color);
+    color: var(--primary-color);
+}
 .book_card{
     display: block;
     min-width: 0px;

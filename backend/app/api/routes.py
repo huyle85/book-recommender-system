@@ -109,25 +109,26 @@ def read_similar_books(
 @router.get(
     "/recommend/{user_id}",
     response_model=UserRecommendationsResponse,
-    summary="Gợi ý sách riêng cho người dùng (Collaborative Filtering)",
+    summary="Gợi ý sách cho người dùng (SVD + Popularity Cold Start Fallback)",
 )
 def read_user_recommendations(
     user_id: int,
     top_k: int = Query(default=10, ge=1, le=50, description="Số sách gợi ý tối đa"),
 ) -> UserRecommendationsResponse:
-    """Dùng collaborative_model.pkl (SVD) dự đoán các cuốn sách user sẽ thích nhất."""
+    """
+    Dùng collaborative_model.pkl (SVD) cho người dùng đã có lịch sử đánh giá.
+    Nếu user_id là người dùng mới chưa có lịch sử (Cold Start), tự động
+    chuyển sang Popularity-Based để gợi ý Top-K sách phổ biến nhất.
+    """
     try:
-        items = get_user_recommendations(user_id=user_id, top_k=top_k)
+        result = get_user_recommendations(user_id=user_id, top_k=top_k)
     except (FileNotFoundError, RuntimeError) as exc:
         raise _handle_missing_resource(exc) from exc
 
-    if items is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Không tìm thấy User-ID {user_id} trong dữ liệu đánh giá.",
-        )
-
     return UserRecommendationsResponse(
         user_id=user_id,
-        recommendations=[BookOut(**item) for item in items],
+        recommend_type=result["recommend_type"],
+        is_cold_start=result["is_cold_start"],
+        message=result["message"],
+        recommendations=[BookOut(**item) for item in result["recommendations"]],
     )

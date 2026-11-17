@@ -189,11 +189,14 @@ def test_similar_books() -> None:
     assert body["similar_books"][0]["score"] > 0
 
 
-def test_recommend_user_and_404() -> None:
+def test_recommend_known_user_and_cold_start_fallback() -> None:
+    # 1. User đã có lịch sử -> chạy Collaborative Filtering (SVD)
     res_ok = client.get("/api/recommend/166596", params={"top_k": 3})
     assert res_ok.status_code == 200
     body = res_ok.json()
     assert body["user_id"] == 166596
+    assert body["is_cold_start"] is False
+    assert body["recommend_type"] == "Collaborative Filtering (SVD)"
     recs = body["recommendations"]
     assert len(recs) == 3
     # Không gợi ý lại sách 0439139597 mà user 166596 đã đọc
@@ -201,9 +204,17 @@ def test_recommend_user_and_404() -> None:
     assert recs[0]["book_id"] == "0439425220"
     assert recs[0]["score"] == 9.5
 
-    # User không tồn tại -> 404 (để Frontend hiển thị đúng thông báo lỗi)
-    res_missing = client.get("/api/recommend/999999999")
-    assert res_missing.status_code == 404
+    # 2. User mới chưa có lịch sử (Cold Start) -> tự động chuyển sang Popularity-Based (200 OK)
+    res_cold_start = client.get("/api/recommend/999999999", params={"top_k": 10})
+    assert res_cold_start.status_code == 200
+    cold_body = res_cold_start.json()
+    assert cold_body["user_id"] == 999999999
+    assert cold_body["is_cold_start"] is True
+    assert cold_body["recommend_type"] == "Popularity-Based (Cold Start Fallback)"
+    cold_recs = cold_body["recommendations"]
+    assert len(cold_recs) == 2
+    assert cold_recs[0]["book_id"] == "0439425220"
+    assert cold_recs[0]["score"] == 9.5
 
 
 def test_missing_model_returns_503(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -71,15 +71,26 @@ async function LayDuLieuMau(DuongDan){
     if(CacPhan[1] == "popular"){
         return {recommend_type: "Popularity (Cold Start)", popular_books: SachMau};
     }
-    // Gợi ý sách theo User-ID
+    // Gợi ý sách theo User-ID (SVD hoặc Popularity Cold Start Fallback)
     if(CacPhan[1] == "recommend"){
-        if(Number(CacPhan[2]) > 278858){
-            const Loi = new Error("Không tìm thấy dữ liệu.");
-            Loi.status = 404;
-            throw Loi;
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        const UserID = Number(CacPhan[2]);
+        if(UserID > 278858){
+            return {
+                user_id: UserID,
+                recommend_type: "Popularity-Based (Cold Start Fallback)",
+                is_cold_start: true,
+                message: `User-ID ${UserID} chưa có lịch sử đánh giá (Cold Start). Hệ thống tự động dùng Popularity-Based để gợi ý sách phổ biến nhất.`,
+                recommendations: SachMau.slice(0, 10)
+            };
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return {recommendations: SachMau.slice(3)};
+        return {
+            user_id: UserID,
+            recommend_type: "Collaborative Filtering (SVD)",
+            is_cold_start: false,
+            message: `Gợi ý cá nhân hóa cho User-ID ${UserID} bằng Collaborative Filtering (SVD).`,
+            recommendations: SachMau.slice(3)
+        };
     }
     // Tìm sách theo tên sách hoặc tên tác giả
     if(CacPhan[2] == "search"){
