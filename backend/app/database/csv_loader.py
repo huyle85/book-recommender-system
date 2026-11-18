@@ -203,8 +203,9 @@ def search_books_in_csv(keyword: str, limit: int = 40) -> list[dict]:
 
 def get_user_seen_books(user_id: int) -> set[str] | None:
     """
-    Kiểm tra user_id theo O(1) trên Hash Map và trả về tập sách đã đánh giá.
-    Nếu user_id là người dùng mới chưa có lịch sử (Cold Start) thì trả về None.
+    Tra cứu lịch sử sách user_id đã đánh giá trong ratings_cleaned.csv theo O(1).
+    Chỉ dùng để loại bỏ sách đã đọc; việc phân nhánh Cold Start do
+    recommend_service.py kiểm tra trực tiếp trên _raw2inner_id_users của svd_model.
     """
     _load_ratings_summary(required=True)
     return _user_seen_books.get(int(user_id))

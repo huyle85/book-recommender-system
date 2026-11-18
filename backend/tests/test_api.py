@@ -21,22 +21,39 @@ from app.services import recommend_service
 
 
 class DummyTrainset:
-    """Giả lập trainset của surprise chứa tập User-ID đã học trong Train."""
+    """Giả lập trainset của surprise chứa _raw2inner_id_users và lịch sử ur trong Train."""
 
-    def __init__(self, known_users: set[int]) -> None:
-        self._known_users = known_users
+    def __init__(self, user_ratings: dict[int, list[str]]) -> None:
+        self._raw2inner_id_users: dict[int, int] = {}
+        self._raw2inner_id_items: dict[str, int] = {}
+        self._inner2raw_id_items: dict[int, str] = {}
+        self.ur: dict[int, list[tuple[int, float]]] = {}
+
+        for uid, isbns in user_ratings.items():
+            inner_uid = len(self._raw2inner_id_users)
+            self._raw2inner_id_users[uid] = inner_uid
+            self.ur[inner_uid] = []
+            for isbn in isbns:
+                if isbn not in self._raw2inner_id_items:
+                    inner_iid = len(self._raw2inner_id_items)
+                    self._raw2inner_id_items[isbn] = inner_iid
+                    self._inner2raw_id_items[inner_iid] = isbn
+                self.ur[inner_uid].append((self._raw2inner_id_items[isbn], 9.0))
 
     def to_inner_uid(self, user_id: int) -> int:
-        if user_id not in self._known_users:
+        if user_id not in self._raw2inner_id_users:
             raise ValueError(f"User {user_id} is not part of the trainset.")
-        return user_id
+        return self._raw2inner_id_users[user_id]
+
+    def to_raw_iid(self, inner_iid: int) -> str:
+        return self._inner2raw_id_items[inner_iid]
 
 
 class DummySVDModel:
     """Giả lập đối tượng SVD của thư viện surprise có .trainset và .predict(uid, iid)."""
 
-    def __init__(self, train_users: set[int]) -> None:
-        self.trainset = DummyTrainset(train_users)
+    def __init__(self, train_user_ratings: dict[int, list[str]]) -> None:
+        self.trainset = DummyTrainset(train_user_ratings)
 
     def predict(self, user_id: int, isbn: str) -> SimpleNamespace:
         scores = {
@@ -152,8 +169,14 @@ def setup_temp_data_and_models(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(recommend_service, "MODEL_DIR", model_dir)
     csv_loader.clear_csv_cache()
     recommend_service.clear_model_cache()
-    # Chỉ 166596 và 100001 nằm trong tập Train SVD; 100002 giả lập user chỉ thuộc Validation/Test
-    recommend_service._model_cache["collaborative_model.pkl"] = DummySVDModel({166596, 100001})
+    # 166596, 100001, 200001 thuộc Train SVD (200001 không có trong CSV); 100002 chỉ thuộc Validation/Test
+    recommend_service._model_cache["collaborative_model.pkl"] = DummySVDModel(
+        {
+            166596: ["0439139597"],
+            100001: ["0439425220", "0394800389"],
+            200001: ["0439425220"],
+        }
+    )
 
 
 client = TestClient(app)
@@ -239,6 +262,14 @@ def test_recommend_known_user_and_cold_start_fallback() -> None:
     assert len(cold_recs) == 2
     assert cold_recs[0]["book_id"] == "0439425220"
     assert cold_recs[0]["score"] == 9.5
+
+    # 4. User có trong _raw2inner_id_users của SVD dù không nằm trong CSV -> vẫn chạy SVD & loại sách trong ur
+    res_svd_only = client.get("/api/recommend/200001", params={"top_k": 3})
+    assert res_svd_only.status_code == 200
+    svd_only_body = res_svd_only.json()
+    assert svd_only_body["is_cold_start"] is False
+    assert svd_only_body["recommend_type"] == "Collaborative Filtering (SVD)"
+    assert all(item["book_id"] != "0439425220" for item in svd_only_body["recommendations"])
 
 
 def test_missing_model_returns_503(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

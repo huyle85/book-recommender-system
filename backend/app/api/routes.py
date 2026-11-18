@@ -116,8 +116,8 @@ def read_user_recommendations(
     top_k: int = Query(default=10, ge=1, le=50, description="Số sách gợi ý tối đa"),
 ) -> UserRecommendationsResponse:
     """
-    Dùng collaborative_model.pkl (SVD) cho người dùng đã có lịch sử đánh giá.
-    Nếu user_id là người dùng mới chưa có lịch sử (Cold Start), tự động
+    Dùng collaborative_model.pkl (SVD) cho user nằm trong _raw2inner_id_users của trainset.
+    Nếu user mới hoặc chỉ thuộc Validation/Test ngoài Train (Cold Start), tự động
     chuyển sang Popularity-Based để gợi ý Top-K sách phổ biến nhất.
     """
     try:

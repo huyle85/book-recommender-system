@@ -179,50 +179,70 @@ def get_similar_books(book_id: str, top_k: int = 5) -> list[dict]:
 
 
 def _is_user_in_svd_trainset(svd_model: object, user_id: int) -> bool:
-    """Kiểm tra O(1) xem user_id có thực sự nằm trong trainset của mô hình SVD hay không."""
+    """Kiểm tra O(1) xem user_id có nằm trong _raw2inner_id_users của svd_model.trainset không."""
     trainset = getattr(svd_model, "trainset", None)
-    if trainset is None or not hasattr(trainset, "to_inner_uid"):
+    if trainset is None:
         return False
+
+    uid = int(user_id)
+    raw_to_inner = getattr(trainset, "_raw2inner_id_users", None)
+    if isinstance(raw_to_inner, dict):
+        return uid in raw_to_inner
+
+    if hasattr(trainset, "to_inner_uid"):
+        try:
+            trainset.to_inner_uid(uid)
+            return True
+        except ValueError:
+            return False
+    return False
+
+
+def _get_svd_seen_isbns(svd_model: object, user_id: int) -> set[str]:
+    """Lấy tập ISBN mà user_id đã chấm trong tập Train của svd_model."""
+    trainset = getattr(svd_model, "trainset", None)
+    if trainset is None or not hasattr(trainset, "to_inner_uid") or not hasattr(trainset, "to_raw_iid"):
+        return set()
     try:
-        trainset.to_inner_uid(user_id)
-        return True
+        inner_uid = trainset.to_inner_uid(int(user_id))
     except ValueError:
-        return False
+        return set()
+
+    user_ratings = getattr(trainset, "ur", None)
+    if not user_ratings or inner_uid not in user_ratings:
+        return set()
+    return {str(trainset.to_raw_iid(inner_iid)) for inner_iid, _ in user_ratings[inner_uid]}
 
 
 def get_user_recommendations(user_id: int, top_k: int = 10) -> dict:
     """
     Gợi ý Top-K sách cho user_id theo chiến lược Hybrid nhất quán với mô hình đã huấn luyện:
-    - Nếu user chưa có lịch sử hoặc chưa nằm trong trainset của FunkSVD (Cold Start):
-      tự động fallback sang Popularity-Based để gợi ý Top-K sách phổ biến nhất.
-    - Nếu user đã có nhân tố ẩn p_u trong trainset của FunkSVD: lọc sách đã đọc qua
-      Hash Set O(1), chấm điểm các sách ứng viên và chọn Top-K bằng Min-Heap (O(N log K)).
+    - Kiểm tra trực tiếp bảng băm _raw2inner_id_users trong svd_model.trainset trước (O(1)):
+      nếu user chưa có nhân tố ẩn (user mới hoặc chỉ ở Validation/Test), fallback sang Popularity-Based.
+    - Nếu user thuộc svd_model.trainset: kết hợp lịch sử đã đọc (Trainset + CSV Hash Set O(1)),
+      chấm điểm các sách ứng viên bằng FunkSVD và chọn Top-K bằng Min-Heap (O(N log K)).
     """
-    seen_books = get_user_seen_books(user_id)
-    if seen_books is None:
-        return {
-            "recommend_type": "Popularity-Based (Cold Start Fallback)",
-            "is_cold_start": True,
-            "message": (
-                f"User-ID {user_id} chưa có lịch sử đánh giá (Cold Start). "
-                f"Hệ thống tự động chuyển sang Popularity-Based gợi ý {top_k} sách phổ biến nhất."
-            ),
-            "recommendations": get_popular_books(top_k=top_k),
-        }
-
     svd_model = _load_model("collaborative_model.pkl")
     if not _is_user_in_svd_trainset(svd_model, user_id):
+        csv_seen = get_user_seen_books(user_id)
+        reason = (
+            f"User-ID {user_id} chỉ xuất hiện ngoài tập Train của FunkSVD (Cold Start ở mức mô hình)"
+            if csv_seen is not None
+            else f"User-ID {user_id} chưa có lịch sử đánh giá (Cold Start)"
+        )
         return {
             "recommend_type": "Popularity-Based (Cold Start Fallback)",
             "is_cold_start": True,
-            "message": (
-                f"User-ID {user_id} chưa nằm trong tập huấn luyện (Train) của mô hình FunkSVD "
-                f"(Cold Start ở mức mô hình). Hệ thống tự động fallback sang Popularity-Based Top-{top_k}."
-            ),
+            "message": f"{reason}. Hệ thống tự động fallback sang Popularity-Based Top-{top_k} sách phổ biến nhất.",
             "recommendations": get_popular_books(top_k=top_k),
         }
 
     load_books()
+
+    seen_books = _get_svd_seen_isbns(svd_model, user_id)
+    csv_seen = get_user_seen_books(user_id)
+    if csv_seen:
+        seen_books = seen_books | csv_seen
 
     # Chọn các sách có nhiều đánh giá nhất làm ứng viên và loại sách đã đọc theo O(1)
     candidate_isbns = get_top_candidate_isbns(limit=3000)
