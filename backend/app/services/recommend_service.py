@@ -216,7 +216,7 @@ def _get_svd_seen_isbns(svd_model: object, user_id: int) -> set[str]:
 
 
 def _get_svd_top_candidate_isbns(svd_model: object, limit: int = 3000) -> list[str]:
-    """Lấy Top-N sách phổ biến nhất hoàn toàn từ trainset.ir (chỉ dữ liệu Train, không rò rỉ Val/Test)."""
+    """Lấy Top-N sách phổ biến nhất hoàn toàn từ trainset.ir theo (-count, -mean, isbn) khớp evaluation.ipynb."""
     cache_key = id(svd_model)
     cached = _svd_candidate_cache.get(cache_key)
     if cached is not None:
@@ -227,12 +227,17 @@ def _get_svd_top_candidate_isbns(svd_model: object, limit: int = 3000) -> list[s
     if not item_ratings or not hasattr(trainset, "to_raw_iid"):
         return get_top_candidate_isbns(limit=limit)
 
-    ranked_items = sorted(
-        ((str(trainset.to_raw_iid(inner_iid)), len(ratings)) for inner_iid, ratings in item_ratings.items()),
-        key=lambda item: item[1],
-        reverse=True,
-    )
-    ranked_isbns = [isbn for isbn, _ in ranked_items]
+    def _candidate_sort_key(entry: tuple[object, list]) -> tuple[int, float, str]:
+        inner_iid, ratings = entry
+        isbn = str(trainset.to_raw_iid(inner_iid))
+        count = len(ratings)
+        mean_rating = sum(float(rating) for _, rating in ratings) / count if count else 0.0
+        return (-count, -mean_rating, isbn)
+
+    ranked_isbns = [
+        str(trainset.to_raw_iid(inner_iid))
+        for inner_iid, _ in sorted(item_ratings.items(), key=_candidate_sort_key)
+    ]
     _svd_candidate_cache[cache_key] = ranked_isbns
     return ranked_isbns[:limit]
 

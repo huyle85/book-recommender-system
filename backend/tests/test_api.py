@@ -282,6 +282,27 @@ def test_recommend_known_user_and_cold_start_fallback() -> None:
     assert all(item["book_id"] != "0439425220" for item in svd_only_body["recommendations"])
 
 
+def test_svd_candidate_tie_break_matches_eval_order() -> None:
+    """Kiểm tra _get_svd_top_candidate_isbns phá đồng hạng bằng (-count, -mean, +isbn) khớp evaluation.ipynb."""
+    recommend_service.clear_model_cache()
+    trainset = SimpleNamespace(
+        ir={
+            0: [(1, 8.0), (2, 8.0)],   # count=2, mean=8.0, isbn="0002"
+            1: [(1, 8.0), (2, 8.0)],   # count=2, mean=8.0, isbn="0001" -> đứng trước "0002"
+            2: [(1, 9.0), (2, 9.0)],   # count=2, mean=9.0, isbn="0003" -> mean cao hơn -> đứng đầu
+            3: [(1, 10.0)],            # count=1, mean=10.0, isbn="0000" -> count ít hơn -> đứng cuối
+        },
+        to_raw_iid=lambda inner_iid: ["0002", "0001", "0003", "0000"][inner_iid],
+    )
+    dummy_model = SimpleNamespace(trainset=trainset)
+    assert recommend_service._get_svd_top_candidate_isbns(dummy_model, limit=4) == [
+        "0003",
+        "0001",
+        "0002",
+        "0000",
+    ]
+
+
 def test_missing_model_returns_503(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     recommend_service.clear_model_cache()
     monkeypatch.setattr(recommend_service, "MODEL_DIR", tmp_path / "empty_models")
