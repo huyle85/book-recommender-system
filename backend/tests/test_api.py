@@ -21,24 +21,34 @@ from app.services import recommend_service
 
 
 class DummyTrainset:
-    """Giả lập trainset của surprise chứa _raw2inner_id_users và lịch sử ur trong Train."""
+    """Giả lập trainset của surprise chứa _raw2inner_id_users, ur và ir (dữ liệu Train)."""
 
-    def __init__(self, user_ratings: dict[int, list[str]]) -> None:
+    def __init__(self, user_ratings: dict[int, list[str]], candidate_items: list[str] | None = None) -> None:
         self._raw2inner_id_users: dict[int, int] = {}
         self._raw2inner_id_items: dict[str, int] = {}
         self._inner2raw_id_items: dict[int, str] = {}
         self.ur: dict[int, list[tuple[int, float]]] = {}
+        self.ir: dict[int, list[tuple[int, float]]] = {}
+
+        def _ensure_item(isbn: str) -> int:
+            if isbn not in self._raw2inner_id_items:
+                inner_iid = len(self._raw2inner_id_items)
+                self._raw2inner_id_items[isbn] = inner_iid
+                self._inner2raw_id_items[inner_iid] = isbn
+                self.ir[inner_iid] = []
+            return self._raw2inner_id_items[isbn]
+
+        for isbn in candidate_items or []:
+            _ensure_item(isbn)
 
         for uid, isbns in user_ratings.items():
             inner_uid = len(self._raw2inner_id_users)
             self._raw2inner_id_users[uid] = inner_uid
             self.ur[inner_uid] = []
             for isbn in isbns:
-                if isbn not in self._raw2inner_id_items:
-                    inner_iid = len(self._raw2inner_id_items)
-                    self._raw2inner_id_items[isbn] = inner_iid
-                    self._inner2raw_id_items[inner_iid] = isbn
-                self.ur[inner_uid].append((self._raw2inner_id_items[isbn], 9.0))
+                inner_iid = _ensure_item(isbn)
+                self.ur[inner_uid].append((inner_iid, 9.0))
+                self.ir[inner_iid].append((inner_uid, 9.0))
 
     def to_inner_uid(self, user_id: int) -> int:
         if user_id not in self._raw2inner_id_users:
@@ -52,8 +62,8 @@ class DummyTrainset:
 class DummySVDModel:
     """Giả lập đối tượng SVD của thư viện surprise có .trainset và .predict(uid, iid)."""
 
-    def __init__(self, train_user_ratings: dict[int, list[str]]) -> None:
-        self.trainset = DummyTrainset(train_user_ratings)
+    def __init__(self, train_user_ratings: dict[int, list[str]], candidate_items: list[str] | None = None) -> None:
+        self.trainset = DummyTrainset(train_user_ratings, candidate_items=candidate_items)
 
     def predict(self, user_id: int, isbn: str) -> SimpleNamespace:
         scores = {
@@ -237,9 +247,9 @@ def test_recommend_known_user_and_cold_start_fallback() -> None:
     assert body["is_cold_start"] is False
     assert body["recommend_type"] == "Collaborative Filtering (SVD)"
     recs = body["recommendations"]
-    assert len(recs) == 3
-    # Không gợi ý lại sách 0439139597 mà user 166596 đã đọc
-    assert all(item["book_id"] != "0439139597" for item in recs)
+    assert len(recs) == 2
+    # Không gợi ý lại sách đã đọc trong Train (0439139597) và không rò rỉ sách chỉ có ở Val/Test (052165615X)
+    assert all(item["book_id"] not in {"0439139597", "052165615X"} for item in recs)
     assert recs[0]["book_id"] == "0439425220"
     assert recs[0]["score"] == 9.5
 

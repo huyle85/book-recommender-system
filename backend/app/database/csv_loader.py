@@ -1,6 +1,7 @@
 """
-Đọc dữ liệu sách và lịch sử đánh giá từ thư mục data/processed/*.csv.
-Dùng pandas và cache trong RAM để các lần gọi API sau phản hồi tức thì.
+Đọc dữ liệu sách và thống kê hiển thị từ thư mục data/processed/*.csv phục vụ lớp giao diện Demo.
+Lưu ý tách biệt dữ liệu: các luồng gợi ý SVD, Popularity Fallback và đánh giá đều tuân thủ
+ranh giới tập Train bên trong *.pkl (không dùng dữ liệu Validation/Test trong CSV để phân nhánh).
 """
 
 import pandas as pd

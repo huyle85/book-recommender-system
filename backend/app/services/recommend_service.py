@@ -19,17 +19,18 @@ from app.config import MODEL_DIR
 from app.database.csv_loader import (
     get_book_detail_dict,
     get_top_candidate_isbns,
-    get_user_seen_books,
     load_books,
 )
 
-# Bộ nhớ đệm (cache) lưu mô hình sau lần nạp đầu tiên
+# Bộ nhớ đệm (cache) lưu mô hình và Top ứng viên Trainset sau lần nạp đầu tiên
 _model_cache: dict[str, object] = {}
+_svd_candidate_cache: dict[int, list[str]] = {}
 
 
 def clear_model_cache() -> None:
     """Xóa cache mô hình trong RAM."""
     _model_cache.clear()
+    _svd_candidate_cache.clear()
 
 
 def _load_model(filename: str) -> object:
@@ -214,38 +215,55 @@ def _get_svd_seen_isbns(svd_model: object, user_id: int) -> set[str]:
     return {str(trainset.to_raw_iid(inner_iid)) for inner_iid, _ in user_ratings[inner_uid]}
 
 
+def _get_svd_top_candidate_isbns(svd_model: object, limit: int = 3000) -> list[str]:
+    """Lấy Top-N sách phổ biến nhất hoàn toàn từ trainset.ir (chỉ dữ liệu Train, không rò rỉ Val/Test)."""
+    cache_key = id(svd_model)
+    cached = _svd_candidate_cache.get(cache_key)
+    if cached is not None:
+        return cached[:limit]
+
+    trainset = getattr(svd_model, "trainset", None)
+    item_ratings = getattr(trainset, "ir", None) if trainset is not None else None
+    if not item_ratings or not hasattr(trainset, "to_raw_iid"):
+        return get_top_candidate_isbns(limit=limit)
+
+    ranked_items = sorted(
+        ((str(trainset.to_raw_iid(inner_iid)), len(ratings)) for inner_iid, ratings in item_ratings.items()),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    ranked_isbns = [isbn for isbn, _ in ranked_items]
+    _svd_candidate_cache[cache_key] = ranked_isbns
+    return ranked_isbns[:limit]
+
+
 def get_user_recommendations(user_id: int, top_k: int = 10) -> dict:
     """
-    Gợi ý Top-K sách cho user_id theo chiến lược Hybrid nhất quán với mô hình đã huấn luyện:
+    Gợi ý Top-K sách cho user_id theo chiến lược Hybrid nhất quán với ranh giới Train:
     - Kiểm tra trực tiếp bảng băm _raw2inner_id_users trong svd_model.trainset trước (O(1)):
       nếu user chưa có nhân tố ẩn (user mới hoặc chỉ ở Validation/Test), fallback sang Popularity-Based.
-    - Nếu user thuộc svd_model.trainset: kết hợp lịch sử đã đọc (Trainset + CSV Hash Set O(1)),
-      chấm điểm các sách ứng viên bằng FunkSVD và chọn Top-K bằng Min-Heap (O(N log K)).
+    - Nếu user thuộc svd_model.trainset: chỉ dùng lịch sử Train (trainset.ur) và tập ứng viên
+      Train-only (trainset.ir) để chấm điểm bằng FunkSVD và chọn Top-K bằng Min-Heap (O(N log K)),
+      tách bạch hoàn toàn khỏi dữ liệu Validation/Test trong ratings_cleaned.csv.
     """
     svd_model = _load_model("collaborative_model.pkl")
     if not _is_user_in_svd_trainset(svd_model, user_id):
-        csv_seen = get_user_seen_books(user_id)
-        reason = (
-            f"User-ID {user_id} chỉ xuất hiện ngoài tập Train của FunkSVD (Cold Start ở mức mô hình)"
-            if csv_seen is not None
-            else f"User-ID {user_id} chưa có lịch sử đánh giá (Cold Start)"
-        )
         return {
             "recommend_type": "Popularity-Based (Cold Start Fallback)",
             "is_cold_start": True,
-            "message": f"{reason}. Hệ thống tự động fallback sang Popularity-Based Top-{top_k} sách phổ biến nhất.",
+            "message": (
+                f"User-ID {user_id} không thuộc tập huấn luyện Train của FunkSVD (Cold Start). "
+                f"Hệ thống tự động fallback sang Popularity-Based Top-{top_k} sách phổ biến nhất."
+            ),
             "recommendations": get_popular_books(top_k=top_k),
         }
 
     load_books()
 
     seen_books = _get_svd_seen_isbns(svd_model, user_id)
-    csv_seen = get_user_seen_books(user_id)
-    if csv_seen:
-        seen_books = seen_books | csv_seen
 
-    # Chọn các sách có nhiều đánh giá nhất làm ứng viên và loại sách đã đọc theo O(1)
-    candidate_isbns = get_top_candidate_isbns(limit=3000)
+    # Chọn ứng viên phổ biến hoàn toàn trong Trainset (trainset.ir) và loại sách đã đọc theo O(1)
+    candidate_isbns = _get_svd_top_candidate_isbns(svd_model, limit=3000)
     unseen_isbns = [isbn for isbn in candidate_isbns if isbn not in seen_books]
     if not unseen_isbns:
         return {
