@@ -1,7 +1,6 @@
 const SO_SACH_MOI_TRANG = 8;
 let DanhSachPhoBien = [];
 let TrangPhoBienHienTai = 1;
-let TrangSachVietHienTai = 1;
 function HienThiTrangChu(){
     ChuyenTrang("trang_home");
     document.getElementById("khu_trang_chu").style.display = "block";
@@ -14,7 +13,6 @@ function HienThiTrangChu(){
     else{
         HienThiTrangSachPhoBien(TrangPhoBienHienTai);
     }
-    HienThiSachTiengViet(TrangSachVietHienTai);
 }
 
 async function TaiSachPhoBien(){
@@ -62,34 +60,6 @@ async function TaiSachPhoBien(){
 }function ChuyenTrangPhoBien(Trang){
     HienThiTrangSachPhoBien(Trang);
     document.getElementById("danh_sach_pho_bien").scrollIntoView({behavior: "smooth", block: "start"});
-}
-function HienThiSachTiengViet(Trang){
-    const Khung = document.getElementById("danh_sach_tieng_viet");
-    const KhungPhanTrang = document.getElementById("phan_trang_tieng_viet");
-    const TongTrang = Math.ceil(DanhSachSachTiengViet.length / SO_SACH_MOI_TRANG);
-    if(Trang < 1){
-        Trang = 1;
-    }
-    if(Trang > TongTrang){
-        Trang = TongTrang;
-    }
-    TrangSachVietHienTai = Trang;
-    const ViTriDau = (Trang - 1) * SO_SACH_MOI_TRANG;
-    const SachTrenTrang = DanhSachSachTiengViet.slice(ViTriDau, ViTriDau + SO_SACH_MOI_TRANG);
-    let Html = "";
-    SachTrenTrang.forEach((Sach) => {
-        Html += TaoTheSachViet(Sach);
-    });
-    Khung.innerHTML = Html;
-    KhungPhanTrang.innerHTML = `
-        <button class="nut_phan_trang" onclick="HienThiSachTiengViet(${Trang - 1})" ${Trang == 1 ? "disabled" : ""}>
-            Trước
-        </button>
-        <span class="so_trang">Trang ${Trang} / ${TongTrang}</span>
-        <button class="nut_phan_trang" onclick="HienThiSachTiengViet(${Trang + 1})" ${Trang == TongTrang ? "disabled" : ""}>
-            Tiếp theo
-        </button>
-    `;
 }
 async function HienThiTimKiem(TuKhoa){
     ChuyenTrang("trang_home");

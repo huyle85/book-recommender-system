@@ -86,23 +86,3 @@ const MauBia = [
 function TaoLoi(NoiDung){
     return '<p class="thong_bao_loi" role="alert">' + LamSach(NoiDung) + "</p>";
 }
-function TaoTheSachViet(Sach){
-    const ThongTinSach = {
-        book_id: Sach.ma,
-        title: Sach.ten,
-        image_url: Sach.image_url || ""
-    };
-    let HtmlTacGia = "";
-    if(Sach.tac_gia){
-        HtmlTacGia = `<p class="tac_gia">${LamSach(Sach.tac_gia)}</p>`;
-    }
-    return `
-        <a class="sach_viet_card" href="${LamSach(Sach.link)}" target="_blank" rel="noopener noreferrer">
-            ${TaoBiaSach(ThongTinSach)}
-            <h3 class="ten_sach">${LamSach(Sach.ten)}</h3>
-            ${HtmlTacGia}
-            <p class="nguon_sach">Kho Sách Online</p>
-            <span class="nut_doc_sach">Đọc sách ↗</span>
-        </a>
-    `;
-}

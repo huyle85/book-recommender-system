@@ -259,64 +259,6 @@ header{
 .so_trang{
     font-weight: bold;
 }
-.khu_sach_viet{
-    padding: 25px;
-    margin-top: 45px;
-    background-color: var(--box-color);
-    border: 2px solid var(--border-color);
-    border-radius: var(--border-radius);
-}
-.link_kho_sach{
-    display: inline-block;
-    margin-top: 15px;
-    padding: 10px 18px;
-    border-radius: var(--border-radius);
-    background-color: var(--button-color);
-    color: white;
-    font-weight: bold;
-    text-decoration: none;
-    transition: 0.3s;
-}
-.link_kho_sach:hover{
-    opacity: 0.75;
-}
-.sach_viet_card{
-    display: block;
-    min-width: 0px;
-    padding: 12px;
-    border: 2px solid var(--border-color);
-    border-radius: var(--border-radius);
-    background-color: var(--background-color);
-    color: var(--primary-color);
-    text-decoration: none;
-    box-shadow: 0px 5px 10px rgb(0, 0, 0, 0.06);
-    transition: 0.3s;
-}
-.sach_viet_card:hover{
-    transform: translateY(-4px);
-    box-shadow: 0px 8px 14px rgb(0, 0, 0, 0.12);
-}
-.sach_viet_card .bia_sach{
-    height: 220px;
-}
-.sach_viet_card .ten_sach{
-    min-height: 48px;
-}
-.nguon_sach{
-    margin-top: 6px;
-    color: var(--secondary-color);
-    font-size: 13px;
-}
-.nut_doc_sach{
-    display: inline-block;
-    margin-top: 10px;
-    padding: 7px 12px;
-    border-radius: 7px;
-    background-color: var(--button-color);
-    color: white;
-    font-size: 14px;
-    font-weight: bold;
-}
 .quay_lai{
     display: inline-block;
     margin-bottom: 20px;
@@ -342,6 +284,7 @@ header{
 .bia_lon .bia_sach{
     height: 360px;
 }
+
 /* Tablet */
 @media (min-width: 768px) and (max-width: 1023px){
     .luoi_sach{
@@ -349,6 +292,7 @@ header{
         gap: 25px 18px;
     }
 }
+
 /* Điện thoại */
 @media (max-width: 767px){
     header{
@@ -381,12 +325,6 @@ header{
     }
     .bia_sach{
         height: 230px;
-    }
-    .sach_viet_card{
-        padding: 10px;
-    }
-    .sach_viet_card .bia_sach{
-        height: 200px;
     }
     .phan_trang{
         gap: 8px;
